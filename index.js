@@ -20,6 +20,14 @@ const run = async () => {
         const serviceCollection = client.db('lawMan').collection('services');
         const reviewsCollection = client.db('lawMan').collection('reviews');
 
+        // get all service and limit , sorting
+        app.get('/services', async (req, res) => {
+            const limitServices = parseInt(req.query.limit);
+            const cursor = serviceCollection.find();
+            const result = await cursor.sort({ _id: -1 }).limit(limitServices).toArray();
+            res.send(result);
+        });
+
         //get single service 
         app.get('/services/:serviceID', async (req, res) => {
             const serviceID = req.params.serviceID;
@@ -61,6 +69,15 @@ const run = async () => {
             }
         });
 
+        // get users reviews 
+        app.get('/my-reviews/:userID', async (req, res) => {
+            const userID = req.params.userID;
+            const query = { authorID: userID };
+            const cursor = reviewsCollection.find(query);
+            const result = await cursor.sort({ _id: -1 }).toArray();
+            res.send(result);
+        });
+
         // insert reviews
         app.post('/reviews', async (req, res) => {
             const reviews = req.body;
@@ -76,7 +93,7 @@ const run = async () => {
         app.get('/reviews/:serviceID', async (req, res) => {
             const serviceID = req.params.serviceID;
             const query = { serviceID: serviceID };
-            const cursor = reviewsCollection.find();
+            const cursor = reviewsCollection.find(query);
             const result = await cursor.sort({ _id: -1 }).toArray();
             res.send(result);
         });
