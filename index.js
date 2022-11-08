@@ -16,7 +16,17 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 
 const run = async () => {
     try {
+
         const serviceCollection = client.db('lawMan').collection('services');
+        const reviewsCollection = client.db('lawMan').collection('reviews');
+
+        //get single service 
+        app.get('/services/:serviceID', async (req, res) => {
+            const serviceID = req.params.serviceID;
+            const query = { _id: ObjectId(serviceID) };
+            const result = await serviceCollection.findOne(query);
+            res.send(result);
+        });
 
         // insert services
         app.post('/my-services', async (req, res) => {
@@ -49,6 +59,39 @@ const run = async () => {
             } else {
                 res.send({ status: 'bad', message: 'Service Could Not Be Deleted.' });
             }
+        });
+
+        // insert reviews
+        app.post('/reviews', async (req, res) => {
+            const reviews = req.body;
+            const result = await reviewsCollection.insertOne(reviews);
+            if (result?.acknowledged === true) {
+                res.send({ status: 'good', message: 'Review Added Successfully.' });
+            } else {
+                res.send({ status: 'bad', message: 'Review Could Not Be Added.' });
+            }
+        });
+
+        //get reviews by single service
+        app.get('/reviews/:serviceID', async (req, res) => {
+            const serviceID = req.params.serviceID;
+            const query = { serviceID: serviceID };
+            const cursor = reviewsCollection.find();
+            const result = await cursor.sort({ _id: -1 }).toArray();
+            res.send(result);
+        });
+
+        // delete reviews 
+        app.delete('/reviews/:reviewID', async (req, res) => {
+            const reviewID = req.params.reviewID;
+            const query = { _id: ObjectId(reviewID) };
+            const result = await reviewsCollection.deleteOne(query);
+            if (result?.acknowledged === true) {
+                res.send({ status: 'good', message: 'Review Deleted Successfully.' });
+            } else {
+                res.send({ status: 'bad', message: 'Review Could Not Be Deleted.' });
+            }
+            console.log(result);
         });
 
     } finally {
