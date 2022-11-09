@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const jwt = require('jsonwebtoken');
 require('dotenv').config();
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
@@ -10,6 +11,7 @@ app.use(express.json());
 const port = process.env.PORT || 5000;
 const userName = process.env.MONGODB_USER_NAME;
 const userPassword = process.env.MONGODB_PASSWORD;
+const jwtSecretKey = process.env.JWT_SECRET_KEY;
 
 const uri = `mongodb+srv://${userName}:${userPassword}@cluster0.cjfgfqu.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
@@ -125,6 +127,7 @@ const run = async () => {
             }
         });
 
+
     } finally {
 
     }
@@ -134,6 +137,16 @@ run().catch(err => console.error(err));
 
 app.get('/', (req, res) => {
     res.send('Law-man server is running');
+});
+
+app.post('/createjwt', (req, res) => {
+    const userID = req.body.userID;
+    const data = {
+        time: Date(),
+        uid: userID,
+    }
+    const token = jwt.sign(data, jwtSecretKey);
+    res.send({ token });
 });
 
 app.get('*', (req, res) => {
