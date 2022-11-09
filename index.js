@@ -89,6 +89,21 @@ const run = async () => {
             }
         });
 
+        // review edit by user
+        app.patch('/my-reviews/edit/:reviewID', async (req, res) => {
+            const reviewID = req.params.reviewID;
+            const reqData = req.body;
+            const updatedData = { $set: reqData }
+            const query = { _id: ObjectId(reviewID) };
+            const result = await reviewsCollection.updateOne(query, updatedData);
+            if (result?.acknowledged === true) {
+                res.send({ status: 'good', message: 'Review Updated Successfully.' });
+            } else {
+                res.send({ status: 'bad', message: 'Review Could Not Be Updated.' });
+            }
+
+        });
+
         //get reviews by single service
         app.get('/reviews/:serviceID', async (req, res) => {
             const serviceID = req.params.serviceID;
@@ -108,7 +123,6 @@ const run = async () => {
             } else {
                 res.send({ status: 'bad', message: 'Review Could Not Be Deleted.' });
             }
-            console.log(result);
         });
 
     } finally {
