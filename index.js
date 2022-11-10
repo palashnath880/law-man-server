@@ -16,11 +16,45 @@ const jwtSecretKey = process.env.JWT_SECRET_KEY;
 const uri = `mongodb+srv://${userName}:${userPassword}@cluster0.cjfgfqu.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 
+const verifyJWT = (req, res, next) => {
+    const jwtToken = req.headers['lawman-jwt'];
+    const verify = jwt.verify(jwtToken, jwtSecretKey);
+    if (verify) {
+        next();
+    } else {
+        res.status(401).send({ status: 'unverified' });
+    }
+}
+
 const run = async () => {
     try {
 
         const serviceCollection = client.db('lawMan').collection('services');
         const reviewsCollection = client.db('lawMan').collection('reviews');
+
+        app.get('/reviews', async (req, res) => {
+
+            const result = reviewsCollection.aggregate([
+                {
+                    $group:
+                    {
+                        _id: '$serviceID',
+                        count: { $sum: 1 },
+                        avg: { $avg: '$rating' }
+                    }
+                },
+                {
+                    $project:
+                    {
+                        _id: 1,
+                        count: 1,
+                        avg: { $round: ['$avg', 1] }
+                    }
+                }
+            ]);
+            const cursor = await result.toArray();
+            res.send(cursor);
+        });
 
         // get all service and limit , sorting
         app.get('/services', async (req, res) => {
@@ -50,7 +84,6 @@ const run = async () => {
         });
 
         // get services by user id
-
         app.get('/my-services/:userID', async (req, res) => {
             const userID = req.params.userID;
             const query = { authorID: userID };
@@ -72,7 +105,7 @@ const run = async () => {
         });
 
         // get users reviews 
-        app.get('/my-reviews/:userID', async (req, res) => {
+        app.get('/my-reviews/:userID', verifyJWT, async (req, res) => {
             const userID = req.params.userID;
             const query = { authorID: userID };
             const cursor = reviewsCollection.find(query);
@@ -81,7 +114,7 @@ const run = async () => {
         });
 
         // insert reviews
-        app.post('/reviews', async (req, res) => {
+        app.post('/reviews', verifyJWT, async (req, res) => {
             const reviews = req.body;
             const result = await reviewsCollection.insertOne(reviews);
             if (result?.acknowledged === true) {
@@ -92,7 +125,7 @@ const run = async () => {
         });
 
         // review edit by user
-        app.patch('/my-reviews/edit/:reviewID', async (req, res) => {
+        app.patch('/my-reviews/edit/:reviewID', verifyJWT, async (req, res) => {
             const reviewID = req.params.reviewID;
             const reqData = req.body;
             const updatedData = { $set: reqData }
@@ -116,7 +149,7 @@ const run = async () => {
         });
 
         // delete reviews 
-        app.delete('/reviews/:reviewID', async (req, res) => {
+        app.delete('/reviews/:reviewID', verifyJWT, async (req, res) => {
             const reviewID = req.params.reviewID;
             const query = { _id: ObjectId(reviewID) };
             const result = await reviewsCollection.deleteOne(query);
